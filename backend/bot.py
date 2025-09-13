@@ -4,8 +4,9 @@ from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMar
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 # --- Configuration ---
-# ⚠️ Replace with your actual Bot Token from @BotFather
-BOT_TOKEN = "6355641479:AAFB6QlUKNOBcYzUD0bf2sb1okfi1MJsTlw"
+import os
+# Read BOT_TOKEN from environment variable (for Render or local .env)
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 
 # This should be the address where your FastAPI server is running
 # For local development, this is correct.
