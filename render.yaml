@@ -13,8 +13,8 @@ services:
 
     # The command to start your application
     # Note: We use backend.main because our code is in the 'backend' folder
-    startCommand: "PYTHONPATH=. uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
-    
+    startCommand: "python -m backend.main"
+
     # Environment variables (secrets)
     # We will set the actual values in the Render dashboard
     envVars:

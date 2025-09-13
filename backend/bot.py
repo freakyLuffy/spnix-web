@@ -2,9 +2,12 @@
 
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
+from dotenv import load_dotenv
 
 # --- Configuration ---
 import os
+
+load_dotenv()
 # Read BOT_TOKEN from environment variable (for Render or local .env)
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 
@@ -32,3 +35,6 @@ ptb_app = Application.builder().token(BOT_TOKEN).build()
 
 # Add the /start command handler
 ptb_app.add_handler(CommandHandler("start", start))
+
+if __name__ == "__main__":
+    ptb_app.run_polling()

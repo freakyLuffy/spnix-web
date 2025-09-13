@@ -10,13 +10,13 @@ import asyncio
 from datetime import datetime, timedelta
 from bson import ObjectId
 
-from .bot import ptb_app
+from backend.bot import ptb_app
 from .logger import log_broadcaster 
 from .worker import WorkerManager
 from fastapi.security import OAuth2PasswordRequestForm
 
-from .auth import get_current_admin_user, get_user_from_cookie 
-from .database import (
+from backend.auth import get_current_admin_user, get_user_from_cookie 
+from backend.database import (
     users_collection, accounts_collection, plans_collection, 
     forwarding_rules_collection, auto_reply_settings_collection,
     smart_selling_settings_collection
@@ -70,7 +70,7 @@ class Plan(BaseModel):
 class UserSubscription(BaseModel):
     plan_id: str
 
-from auth import (
+from backend.auth import (
     User, get_current_user, get_password_hash, verify_password,
     create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 )
@@ -109,15 +109,15 @@ async def read_root(request: Request):
         if token:
             user = await get_current_user(request)
             if user.role == 'admin':
-                return FileResponse('../frontend/admin.html')
+                return FileResponse('frontend/admin.html')
             else:
-                return FileResponse('../frontend/index.html')
+                return FileResponse('frontend/index.html')
     except HTTPException:
         # This catches invalid or expired tokens
         pass
     
     # For any non-logged-in user or user with an invalid token
-    return FileResponse('../frontend/landing.html')
+    return FileResponse('frontend/landing.html')
 
 @app.websocket("/ws/add_account")
 async def websocket_add_account(websocket: WebSocket):
@@ -503,5 +503,5 @@ async def admin_delete_user(username: str, current_user: User = Depends(get_curr
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Serve Frontend ---
-static_files_app = StaticFiles(directory="../frontend", html=True)
+static_files_app = StaticFiles(directory="frontend", html=True)
 app.mount("/", static_files_app, name="static")
