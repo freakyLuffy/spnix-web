@@ -6,4 +6,5 @@ motor
 python-dotenv
 passlib[bcrypt]
 python-jose
-watchfiles # For the reloader
+watchfiles # For the reloadergit 
+python-multipart
