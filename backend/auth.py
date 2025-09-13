@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from database import users_collection
+from .database import users_collection
 DATABASE_FILE = "dashboard.db"
 
 # --- Configuration ---
