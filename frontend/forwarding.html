@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ForwardicBot - Automated Forwarding</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="sidebar col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse">
+        <div class="sidebar-sticky pt-3">
+             <h5 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-light">Dashboard</h5>
+             <ul class="nav flex-column">
+                <li class="nav-item"><a class="nav-link" href="index.html">Overview</a></li>
+                <li class="nav-item"><a class="nav-link" href="accounts.html">Account Management</a></li>
+                <li class="nav-item"><a class="nav-link active" aria-current="page" href="forwarding.html">Automated Forwarding</a></li>
+                <li class="nav-item"><a class="nav-link" href="auto-reply.html">Auto Reply</a></li>
+                <li class="nav-item"><a class="nav-link" href="joiner.html">Group Joiner</a></li>
+                <li class="nav-item"><a class="nav-link" href="validator.html">Link Validator</a></li>
+                <li class="nav-item"><a class="nav-link" href="extractor.html">Link Extractor</a></li>
+                <li class="nav-item"><a class="nav-link" href="forward-config.html">Forward Config</a></li>
+                <li class="nav-item"><a class="nav-link" href="smart-selling.html">Smart Selling</a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="logout-btn">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Automated Forwarding Rules</h1>
+            <button class="btn btn-primary" id="add-rule-btn">Add New Rule</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Status</th>
+                        <th scope="col">Source Chat</th>
+                        <th scope="col">Destination Chat</th>
+                        <th scope="col">Filters</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="forwarding-rules-table-body">
+                    </tbody>
+            </table>
+        </div>
+    </main>
+    <div class="modal fade" id="addRuleModal" tabindex="-1" aria-labelledby="addRuleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="addRuleModalLabel">Add New Forwarding Rule</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-rule-form">
+                    <div class="mb-3">
+                        <label for="account-select" class="form-label">Account to Use</label>
+                        <select class="form-select" id="account-select" required>
+                            </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="source-chat" class="form-label">Source Chat ID or Link</label>
+                        <input type="text" class="form-control" id="source-chat" placeholder="e.g., -10012345678 or @channel_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="destination-chat" class="form-label">Destination Chat ID or Link</label>
+                        <input type="text" class="form-control" id="destination-chat" placeholder="e.g., -100987654321 or @my_group" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filters" class="form-label">Keywords (optional, comma-separated)</label>
+                        <input type="text" class="form-control" id="filters" placeholder="e.g., BTC, urgent, signal">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-rule-btn">Save Rule</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

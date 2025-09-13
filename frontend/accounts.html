@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ForwardicBot - Account Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="sidebar col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse">
+        <div class="sidebar-sticky pt-3">
+            <h5 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-light">Dashboard</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item"><a class="nav-link" href="index.html">Overview</a></li>
+                <li class="nav-item"><a class="nav-link active" aria-current="page" href="accounts.html">Account Management</a></li>
+                <li class="nav-item"><a class="nav-link" href="forwarding.html">Automated Forwarding</a></li>
+                <li class="nav-item"><a class="nav-link" href="auto-reply.html">Auto Reply</a></li>
+                <li class="nav-item"><a class="nav-link" href="joiner.html">Group Joiner</a></li>
+                <li class="nav-item"><a class="nav-link" href="validator.html">Link Validator</a></li>
+                <li class="nav-item"><a class="nav-link" href="extractor.html">Link Extractor</a></li>
+                <li class="nav-item"><a class="nav-link" href="forward-config.html">Forward Config</a></li>
+                <li class="nav-item"><a class="nav-link" href="smart-selling.html">Smart Selling</a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="logout-btn">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Account Management</h1>
+            <button class="btn btn-primary"  id="add-account-btn">Add New Account</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Phone Number</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Added On</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="accounts-table-body">
+                    </tbody>
+            </table>
+        </div>
+    </main>
+    <div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="addAccountModalLabel">Add New Telegram Account</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-prompt-text">Connecting to server...</p>
+                <div id="modal-input-group" class="mb-3" style="display: none;">
+                    <input type="text" class="form-control" id="modal-input" placeholder="Your answer here">
+                </div>
+                <div id="modal-status-text" class="form-text"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="modal-submit-btn" style="display: none;">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
