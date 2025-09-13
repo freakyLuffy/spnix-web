@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 
 from .bot import ptb_app
-from logger import log_broadcaster 
+from .logger import log_broadcaster 
 from worker import WorkerManager
 from fastapi.security import OAuth2PasswordRequestForm
 
