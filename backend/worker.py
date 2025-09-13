@@ -11,8 +11,8 @@ from fastapi import WebSocket
 import re
 import os
 from dotenv import load_dotenv
-from logger import LogBroadcaster
-from database import (
+from .logger import LogBroadcaster
+from .database import (
     accounts_collection, forwarding_rules_collection, 
     auto_reply_settings_collection, smart_selling_settings_collection
 )
