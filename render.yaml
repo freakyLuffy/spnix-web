@@ -1,0 +1,33 @@
+# render.yaml
+services:
+  - type: web
+    name: forwardicbot
+    env: python
+    plan: free # Or your preferred plan
+    # The region for your server, choose one close to you
+    # e.g., frankfurt (Germany) or oregon (US West)
+    region: singapore
+    
+    # Commands to run on build
+    buildCommand: "pip install -r requirements.txt"
+
+    # The command to start your application
+    # Note: We use backend.main because our code is in the 'backend' folder
+    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+    
+    # Environment variables (secrets)
+    # We will set the actual values in the Render dashboard
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+        
+    # Persistent Disk for Telethon Sessions
+    # This is CRUCIAL to avoid logging in again after every deploy

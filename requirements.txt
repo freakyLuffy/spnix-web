@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-telegram-bot
+telethon
+motor
+python-dotenv
+passlib[bcrypt]
+python-jose
+watchfiles # For the reloader
