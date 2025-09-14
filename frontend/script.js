@@ -9,6 +9,24 @@
 
 // This gatekeeper runs on every single page
 // At the top of frontend/script.js
+const authManager = {
+    token: null,
+    user: null,
+
+    setAuth(token, user) {
+        this.token = token;
+        this.user = user;
+    },
+
+    clearAuth() {
+        this.token = null;
+        this.user = null;
+    },
+
+    isAuthenticated() {
+        return !!this.token;
+    }
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
@@ -32,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ...existing code...
 
     try {
+         const storedToken = sessionStorage.getItem('authToken');
         console.log('[DEBUG] Fetching /api/users/me to check session...');
         const response = await fetch('/api/users/me', { credentials: 'include' });
        // persistDebug('[DEBUG] /api/users/me response status: ' + response.status);
@@ -44,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const user = await response.json();
+         authManager.setAuth(storedToken || "from_cookie", user);
      //  persistDebug('[DEBUG] /api/users/me response data: ' + JSON.stringify(user));
         console.log('[DEBUG] /api/users/me response data:', user);
 
@@ -187,16 +207,22 @@ async function handleLogin(event) {
         });
 
         console.log(response)
+        const result = await response.json();
         
         if (response.ok) {
-            const loginData = await response.json();
-            console.log(loginData)
+            //authManager.setAuth(result.access_token, { role: result.role });
+            console.log(result)
+             // Store the token in sessionStorage
+            sessionStorage.setItem('authToken', result.access_token);
             
+            // Also update the authManager
+            authManager.setAuth(result.access_token, { role: result.role });
+
             // If login is successful, the cookie is set.
             // Redirect DIRECTLY to the correct page. The gatekeeper script
             // on that NEXT page will handle the verification.
-            console.log('[DEBUG] Login response:', loginData);
-            if (loginData.role === 'admin') {
+            console.log('[DEBUG] Login response:', result);
+            if (result.role === 'admin') {
                 console.log('[DEBUG] Redirecting to admin.html');
                 window.location.href = '/admin.html';
             } else {
@@ -224,18 +250,35 @@ async function handleLogin(event) {
 
 
 
+// In frontend/script.js
+
 async function handleRegister(event) {
     event.preventDefault();
     const form = event.target;
-    const formData = new FormData(form);
     const errorDiv = document.getElementById('error-message');
     const successDiv = document.getElementById('success-message');
+
+    // Manually get the values from the form
+    const username = form.querySelector('#username').value;
+    const password = form.querySelector('#password').value;
+
+    // Create a JSON object
+    const userData = {
+        username: username,
+        password: password
+    };
 
     try {
         const response = await fetch('/api/register', {
             method: 'POST',
-            body: formData,
+            // Set the correct header for sending JSON
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // Send the JSON object as a string
+            body: JSON.stringify(userData),
         });
+        
         if (response.ok) {
             successDiv.textContent = 'Registration successful! You can now log in.';
             successDiv.style.display = 'block';
@@ -250,21 +293,6 @@ async function handleRegister(event) {
     } catch (err) {
         errorDiv.textContent = 'An error occurred. Please try again.';
         errorDiv.style.display = 'block';
-    }
-}
-
-async function handleLogout() {
-    console.log("Logging out...");
-    try {
-        await fetch('/api/logout', { 
-            method: 'POST',
-            credentials: 'include' // Important: Include cookies
-        });
-    } catch (error) {
-        console.error('Logout error:', error);
-    } finally {
-        // Always redirect to login, even if logout request failed
-        window.location.href = 'login.html';
     }
 }
 
@@ -541,6 +569,21 @@ let ws; // Keep the WebSocket connection in a global variable
 function startAddAccountProcess() {
     const modalElement = document.getElementById('addAccountModal');
     const modal = new bootstrap.Modal(modalElement);
+    // Use the token from the auth manager
+    console.log(authManager)
+
+
+     // Use the token from the auth manager
+    if (!authManager.token || authManager.token === "from_cookie") {
+        // If the token is missing (e.g., after a page refresh), prompt the user to log in again.
+        alert("Session requires re-authentication for this action. Please log out and log back in.");
+        // A more advanced solution would be to use a refresh token flow.
+        return;
+    }
+    const token = authManager.token;
+    
+    modal.show();
+    
     
     const promptText = document.getElementById('modal-prompt-text');
     const statusText = document.getElementById('modal-status-text');
@@ -554,11 +597,13 @@ function startAddAccountProcess() {
     inputGroup.style.display = 'none';
     submitBtn.style.display = 'none';
     submitBtn.disabled = false;
+
     
     modal.show();
 
     // Establish WebSocket connection
-    ws = new WebSocket(`ws://${window.location.host}/ws/add_account`);
+    ws = new WebSocket(`ws://${window.location.host}/ws/add_account?token=${token}`);
+    console.log(ws)
 
     ws.onopen = () => {
         console.log("WebSocket connection established.");
@@ -664,7 +709,9 @@ async function populateJoinerAccountList() {
     if (!accountSelect) return;
 
     try {
-        const response = await fetch('/api/accounts');
+        const response = await fetch('/api/accounts', {
+            credentials: 'include'
+        });
         const accounts = await response.json();
         accountSelect.innerHTML = '<option value="">Select an account...</option>';
         accounts.forEach(acc => {
@@ -1140,6 +1187,9 @@ async function handleLogout() {
     if (confirm("Are you sure you want to log out?")) {
         try {
             await fetch('/api/logout', { method: 'POST' });
+            authManager.clearAuth();
+             // Clear the stored token
+            sessionStorage.removeItem('authToken');
             window.location.href = 'login.html';
         } catch (error) {
             console.error("Logout failed:", error);
@@ -1277,4 +1327,10 @@ async function fetchAdminDashboardStats() {
     } catch (error) {
         console.error("Failed to fetch admin dashboard stats:", error);
     }
+}
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    console.log(value)
+    if (parts.length === 2) return parts.pop().split(';').shift();
 }

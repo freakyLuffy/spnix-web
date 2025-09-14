@@ -60,7 +60,9 @@ class WorkerManager:
         try:
             await client.start(phone=phone)
             self.clients[phone] = client
-            await self.logger.log(f"✅ Client for {phone} connected.")
+
+            await accounts_collection.update_one({"phone": phone}, {"$set": {"status": "Online"}})
+            await self.logger.log(f"✅ Client for {phone} connected and status set to Online.")
 
             # Load forwarding rules for this specific account
             rules = []
@@ -175,12 +177,12 @@ class WorkerManager:
             await client.run_until_disconnected()
 
         except Exception as e:
-            await self._update_account_status(phone, "Error") # Update status on error
+            await accounts_collection.update_one({"phone": phone}, {"$set": {"status": "Error"}})
             await self.logger.log(f"[ERROR] Client {phone} failed to connect: {e}")
         finally:
             if phone in self.clients:
                 del self.clients[phone]
-            await self._update_account_status(phone, "Offline") # Update status on disconnect
+            await accounts_collection.update_one({"phone": phone}, {"$set": {"status": "Offline"}})
             await self.logger.log(f"[INFO] Client for {phone} disconnected.")
 
     # --- NEW: Method to handle joining groups ---
@@ -216,54 +218,58 @@ class WorkerManager:
 
         return results
 
-    async def start_interactive_session(self, websocket: WebSocket):
+
+    # --- THIS IS THE MISSING FUNCTION ---
+    async def start_interactive_session(self, websocket: WebSocket, owner_user: User):
         """Interactive session for adding new accounts via WebSocket"""
         client = TelegramClient(StringSession(), API_ID, API_HASH)
+        correct_phone_number = ""
         try:
             await client.connect()
             await websocket.send_json({"type": "prompt", "message": "Please enter your phone number (e.g., +15551234567):"})
             response = await websocket.receive_json()
-            phone_number = response.get("data")
-            sent_code = await client.send_code_request(phone_number)
+            phone_input = response.get("data")
+            
+            sent_code = await client.send_code_request(phone_input)
             await websocket.send_json({"type": "prompt", "message": "Enter the code you received in Telegram:"})
             response = await websocket.receive_json()
             code = response.get("data")
+            
             try:
-                await client.sign_in(phone_number, code, phone_code_hash=sent_code.phone_code_hash)
+                await client.sign_in(phone_input, code, phone_code_hash=sent_code.phone_code_hash)
             except SessionPasswordNeededError:
                 await websocket.send_json({"type": "prompt", "message": "Two-factor authentication is enabled. Please enter your password:"})
                 response = await websocket.receive_json()
                 password = response.get("data")
                 await client.sign_in(password=password)
             
+            me = await client.get_me()
             session_string = client.session.save()
-            phone_number = response.get("data")# A more reliable way to get the number
-            phone_str = f"+{phone_number}" # Simplified, might need adjustment based on user type
+            correct_phone_number = f"+{me.phone}"
 
-            # Save to MongoDB
             account_doc = {
-                "phone": phone_str,
+                "phone": correct_phone_number,
                 "session_string": session_string,
                 "status": "Online",
                 "added_on": datetime.now(),
-                "created_at": datetime.now()
+                "owner": owner_user.username
             }
             
-            await accounts_collection.replace_one(
-                {"phone": phone_number},
-                account_doc,
+            await accounts_collection.update_one(
+                {"phone": correct_phone_number},
+                {"$set": account_doc},
                 upsert=True
             )
             
-            await self.logger.log(f"Login successful for {phone_number}. Session saved to database.")
+            await self.logger.log(f"Login successful for {correct_phone_number}. Session saved.")
+            asyncio.create_task(self._run_client(correct_phone_number, session_string))
             
-            # Launch the new client in the background immediately
-            asyncio.create_task(self._run_client(phone_number, session_string))
-            await websocket.send_json({"type": "success", "message": f"Successfully logged in and saved account {phone_number}!"})
+            await websocket.send_json({"type": "success", "message": f"Successfully logged in and saved account {correct_phone_number}!"})
             
         except Exception as e:
             error_message = str(e)
-            await self.logger.log(f"❌ Login failed: {error_message}")
+            log_identifier = correct_phone_number or "the user"
+            await self.logger.log(f"❌ Login failed for {log_identifier}: {error_message}")
             await websocket.send_json({"type": "error", "message": f"An error occurred: {error_message}"})
         finally:
             if client.is_connected():

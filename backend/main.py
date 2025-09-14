@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 
 from backend.bot import ptb_app
+from .auth import get_current_user_from_ws 
 from .logger import log_broadcaster 
 from .worker import WorkerManager
 from fastapi.security import OAuth2PasswordRequestForm
@@ -70,6 +71,10 @@ class Plan(BaseModel):
 class UserSubscription(BaseModel):
     plan_id: str
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
 from backend.auth import (
     User, get_current_user, get_password_hash, verify_password,
     create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -120,26 +125,38 @@ async def read_root(request: Request):
     return FileResponse('frontend/landing.html')
 
 @app.websocket("/ws/add_account")
-async def websocket_add_account(websocket: WebSocket):
+async def websocket_add_account(
+    websocket: WebSocket,
+    current_user: User = Depends(get_current_user_from_ws) # USE THE NEW DEPENDENCY
+):
+    """WebSocket for adding accounts, now authenticates via query parameter."""
     await websocket.accept()
     worker_manager = websocket.app.state.worker_manager
     try:
-        await worker_manager.start_interactive_session(websocket)
+        # Pass the authenticated user to the worker session
+        await worker_manager.start_interactive_session(websocket, current_user)
     except WebSocketDisconnect:
         print("Client disconnected during login process.")
+    except Exception as e:
+        print(f"An unexpected error occurred in WebSocket: {e}")
 
 @app.get("/api/accounts")
 async def get_accounts(request: Request, current_user: User = Depends(get_current_user)):
     """
-    Returns a list of accounts with their TRUE LIVE status.
+    UPDATED: Returns a list of accounts OWNED BY THE CURRENT USER.
     """
     worker_manager: WorkerManager = request.app.state.worker_manager
     live_clients = worker_manager.clients.keys()
-    accounts = []
-    async for account in accounts_collection.find({}):
-        account['_id'] = str(account['_id'])  # Convert ObjectId to string
+    
+    # This query now filters by the logged-in user's username
+    accounts_cursor = accounts_collection.find({"owner": current_user.username})
+    accounts = await accounts_cursor.to_list(length=100)
+
+    # Loop through the results and convert the '_id' to a string
+    for account in accounts:
+        account['_id'] = str(account['_id'])
         account['status'] = "Online" if account['phone'] in live_clients else "Offline"
-        accounts.append(account)
+        
     return accounts
 
 @app.delete("/api/accounts/{phone}")
@@ -149,19 +166,21 @@ async def delete_account(phone: str, current_user: User = Depends(get_current_us
         raise HTTPException(status_code=404, detail="Account not found")
     return {"status": "success"}
 
+
 @app.post("/api/register")
-async def register_user(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await users_collection.find_one({"username": form_data.username})
+async def register_user(user_data: UserCreate): # Use the new Pydantic model
+    user = await users_collection.find_one({"username": user_data.username})
+    print(user)
+    print(f"[REGISTER DEBUG] Checking if user exists: {user_data.username}")
     if user:
         raise HTTPException(status_code=400, detail="Username already registered")
     
-    hashed_password = get_password_hash(form_data.password)
+    hashed_password = get_password_hash(user_data.password)
     # New users are always given the 'user' role for security
     await users_collection.insert_one({
-        "username": form_data.username,
+        "username": user_data.username,
         "hashed_password": hashed_password,
-        "role": "user",
-        "created_at": datetime.utcnow()
+        "role": "user"
     })
     return {"message": "User registered successfully"}
 
@@ -174,23 +193,13 @@ async def login_for_access_token(response: Response, form_data: OAuth2PasswordRe
             detail="Incorrect username or password",
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user['username']}, expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"sub": user['username']})
     
-    # Set the token in an HTTP-only cookie
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        expires=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=False  # Set to True in production with HTTPS
-    )
+    # Set the secure cookie
+    response.set_cookie(key="access_token", value=access_token, httponly=True)
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Return the token AND the user's role
+    return {"access_token": access_token, "token_type": "bearer", "role": user['role']}
 
 @app.get("/api/users/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):

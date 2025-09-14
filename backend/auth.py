@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from fastapi import WebSocket, Depends, Query
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from .database import users_collection
@@ -152,3 +153,28 @@ async def get_user_from_db(username: str):
         # Pydantic's User model can be created directly from the dictionary
         return User(**user_data)
     return None
+
+async def get_current_user_from_ws(
+    websocket: WebSocket,
+    token: str = Query(...)
+):
+    """
+    Dependency to get the current user from a token in the WebSocket's query params.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    
+    user = await get_user_from_db(username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
